@@ -1,0 +1,196 @@
+<?php
+/**
+ * 后台文章编辑页面 - 自定义字段
+ * 这个文件应该被包含在主题的 functions.php 中
+ */
+
+if (!defined('__TYPECHO_ROOT_DIR__')) exit;
+
+/**
+ * 获取文章的自定义字段值
+ */
+function navThemeGetPostMeta($postId, $fieldName, $default = '') {
+    global $db;
+    
+    try {
+        $result = $db->fetchRow($db->select('value')->from('table.metas')->where('post = ' . $postId)->where('name = "' . $fieldName . '"')->limit(1));
+        return $result ? $result['value'] : $default;
+    } catch (Exception $e) {
+        return $default;
+    }
+}
+
+/**
+ * 保存文章的自定义字段值
+ */
+function navThemeSetPostMeta($postId, $fieldName, $value) {
+    global $db;
+    
+    try {
+        // 检查是否已存在
+        $result = $db->fetchRow($db->select('mid')->from('table.metas')->where('post = ' . $postId)->where('name = "' . $fieldName . '"')->limit(1));
+        
+        if ($result) {
+            // 更新
+            $db->query($db->update('table.metas')->rows(array('value' => $value))->where('mid = ' . $result['mid']));
+        } else {
+            // 插入
+            $db->query($db->insert('table.metas')->rows(array(
+                'post' => $postId,
+                'name' => $fieldName,
+                'value' => $value,
+                'type' => 'post'
+            )));
+        }
+    } catch (Exception $e) {
+        // 忽略错误
+    }
+}
+
+/**
+ * 在文章编辑页面添加自定义字段
+ */
+function navThemeAddPostFields() {
+    global $post;
+    
+    if (!isset($post)) return;
+    
+    $postId = $post->cid;
+    
+    // 获取现有的字段值
+    $websiteUrl = navThemeGetPostMeta($postId, 'website_url', '');
+    $autoFavicon = navThemeGetPostMeta($postId, 'auto_favicon', '');
+    $favicon = navThemeGetPostMeta($postId, 'favicon', '');
+    $iconfontCode = navThemeGetPostMeta($postId, 'iconfont_code', '');
+    $platforms = navThemeGetPostMeta($postId, 'platforms', '');
+    $description = navThemeGetPostMeta($postId, 'description', '');
+    
+    echo '<div class="typecho-post-option" id="meta-box-nav-fields">';
+    echo '<h3>导航主题字段</h3>';
+    
+    // 网站 URL
+    echo '<div class="typecho-option">';
+    echo '<label class="typecho-label" for="website_url">网站 URL</label>';
+    echo '<input type="url" id="website_url" name="website_url" class="typecho-input" value="' . htmlspecialchars($websiteUrl) . '" placeholder="https://example.com" />';
+    echo '<p class="description">输入网站完整 URL，用于自动获取 Favicon</p>';
+    echo '</div>';
+    
+    // 自动获取 Favicon
+    echo '<div class="typecho-option">';
+    echo '<label class="typecho-label">网站图标</label>';
+    echo '<div style="margin-bottom: 10px;">';
+    echo '<button type="button" id="auto-favicon-btn" class="btn primary">自动获取图标</button>';
+    echo '<span id="favicon-status" style="margin-left: 10px; color: #999;"></span>';
+    echo '</div>';
+    
+    $faviconUrl = !empty($autoFavicon) ? $autoFavicon : $favicon;
+    echo '<div style="margin-bottom: 10px;">';
+    echo '<img id="favicon-preview" src="' . htmlspecialchars($faviconUrl) . '" alt="Favicon Preview" style="width: 48px; height: 48px; border-radius: 4px; display: ' . (!empty($faviconUrl) ? 'block' : 'none') . ';" />';
+    echo '</div>';
+    
+    echo '<input type="hidden" id="auto_favicon" name="auto_favicon" value="' . htmlspecialchars($autoFavicon) . '" />';
+    echo '<input type="hidden" id="favicon" name="favicon" value="' . htmlspecialchars($favicon) . '" />';
+    echo '</div>';
+    
+    // 阿里图标代码
+    echo '<div class="typecho-option">';
+    echo '<label class="typecho-label" for="iconfont_code">阿里图标代码</label>';
+    echo '<input type="text" id="iconfont_code" name="iconfont_code" class="typecho-input" value="' . htmlspecialchars($iconfontCode) . '" placeholder="例如: icon-star" />';
+    echo '<p class="description">输入阿里图标的 class 名称，如 icon-star、icon-heart 等</p>';
+    echo '</div>';
+    
+    // 平台标识
+    echo '<div class="typecho-option">';
+    echo '<label class="typecho-label" for="platforms">平台标识</label>';
+    echo '<input type="text" id="platforms" name="platforms" class="typecho-input" value="' . htmlspecialchars($platforms) . '" placeholder="例如: iOS, Android, Web" />';
+    echo '<p class="description">用逗号分隔多个平台，如：iOS, Android, Web</p>';
+    echo '</div>';
+    
+    // 网站简介
+    echo '<div class="typecho-option">';
+    echo '<label class="typecho-label" for="description">网站简介</label>';
+    echo '<textarea id="description" name="description" class="typecho-textarea" rows="3" placeholder="输入网站简介，最多 100 字">' . htmlspecialchars($description) . '</textarea>';
+    echo '<p class="description">简短描述这个网站的用途和特点</p>';
+    echo '</div>';
+    
+    echo '</div>';
+    
+    // 添加 JavaScript
+    echo '<script>
+    (function() {
+        const btn = document.getElementById("auto-favicon-btn");
+        const urlInput = document.getElementById("website_url");
+        const faviconInput = document.getElementById("auto_favicon");
+        const preview = document.getElementById("favicon-preview");
+        const status = document.getElementById("favicon-status");
+        
+        if (btn) {
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                
+                const url = urlInput.value.trim();
+                if (!url) {
+                    status.textContent = "请先输入网站 URL";
+                    status.style.color = "#d9534f";
+                    return;
+                }
+                
+                btn.disabled = true;
+                status.textContent = "获取中...";
+                status.style.color = "#999";
+                
+                // 调用后台 API 获取 Favicon
+                const siteUrl = "' . Typecho_Common::url('index.php', '') . '";
+                fetch(siteUrl + "?action=get_favicon&url=" + encodeURIComponent(url))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.favicon) {
+                            faviconInput.value = data.favicon;
+                            preview.src = data.favicon;
+                            preview.style.display = "block";
+                            status.textContent = "✓ 获取成功";
+                            status.style.color = "#5cb85c";
+                        } else {
+                            status.textContent = "✗ 获取失败";
+                            status.style.color = "#d9534f";
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        status.textContent = "✗ 请求失败";
+                        status.style.color = "#d9534f";
+                    })
+                    .finally(() => {
+                        btn.disabled = false;
+                    });
+            });
+        }
+    })();
+    </script>';
+}
+
+/**
+ * 保存文章时处理自定义字段
+ */
+function navThemeSavePostFields($post) {
+    if (!isset($_POST['website_url'])) return;
+    
+    $postId = $post->cid;
+    
+    // 保存所有自定义字段
+    navThemeSetPostMeta($postId, 'website_url', $_POST['website_url']);
+    navThemeSetPostMeta($postId, 'auto_favicon', $_POST['auto_favicon'] ?? '');
+    navThemeSetPostMeta($postId, 'favicon', $_POST['favicon'] ?? '');
+    navThemeSetPostMeta($postId, 'iconfont_code', $_POST['iconfont_code'] ?? '');
+    navThemeSetPostMeta($postId, 'platforms', $_POST['platforms'] ?? '');
+    navThemeSetPostMeta($postId, 'description', $_POST['description'] ?? '');
+}
+
+// 注册钩子 - 在后台编辑页面添加自定义字段
+add_action('admin_post_edit', 'navThemeAddPostFields');
+
+// 注册钩子 - 保存文章时处理自定义字段
+add_action('admin_post_insert', 'navThemeSavePostFields');
+add_action('admin_post_update', 'navThemeSavePostFields');
+
+?>
