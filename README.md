@@ -1,6 +1,11 @@
-# Typecho 导航主题
+# Typecho 观影nav导航主题
 
-一个仿硬核指南风格的卡片式导航展示主题，为 Typecho 博客系统设计。支持自定义图标、平台标识、网站简介和自动获取网站图标等功能。
+一个卡片式导航展示主题，为 Typecho 博客系统设计。支持自定义图标、平台标识、网站简介和自动获取网站图标等功能。
+
+测试网址：https://by.qhdh.top/
+<img width="1440" height="778" alt="image" src="https://github.com/user-attachments/assets/37922f74-c5cc-4c09-a17f-61d4eb75f82c" />
+<img width="1440" height="778" alt="image" src="https://github.com/user-attachments/assets/bcdb7b03-10e6-4257-8b63-1edd55c645ce" />
+<img width="1034" height="738" alt="image" src="https://github.com/user-attachments/assets/20df474d-354d-44d7-8965-72bd3147b34c" />
 
 ## 功能特性
 
@@ -195,8 +200,8 @@ MIT License
 
 ## 作者
 
-Your Name
+观影Nav
 
 ---
 
-**最后更新**：2024-01-05
+**最后更新**：2026-02-02
